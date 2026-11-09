@@ -104,7 +104,7 @@ async function deliver(ctx: Context, deps: UserHandlerDeps, lang: Lang): Promise
 
   const category = conversation.category;
   const newQuestion = !conversation.announced;
-  const profile = profileOf(ctx);
+  const profile = { ...profileOf(ctx), phone };
 
   await sendToTopic(deps, profile, async (threadId) => {
     if (newQuestion) {

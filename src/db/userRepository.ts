@@ -17,6 +17,8 @@ export interface UserProfile {
   lastName?: string | undefined;
   username?: string | undefined;
   languageCode?: string | undefined;
+  /** Shown on the user card; stored separately (ContactRepository), not in this table. */
+  phone?: string | undefined;
 }
 
 interface UserRow {

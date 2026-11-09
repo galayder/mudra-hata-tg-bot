@@ -129,6 +129,7 @@ export class TopicManager {
     const lines = [
       `👤 <b>${escapeHtml(displayName(profile))}</b>`,
       profile.username ? `Username: @${escapeHtml(profile.username)}` : "Username: —",
+      `Phone: ${profile.phone ? escapeHtml(profile.phone) : "—"}`,
       `ID: <code>${profile.userId}</code>`,
       `Profile: <a href="tg://user?id=${profile.userId}">open</a>`,
       "",
