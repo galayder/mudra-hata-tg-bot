@@ -1,0 +1,28 @@
+{
+  "name": "mudra-hata-tg-bot",
+  "version": "1.0.0",
+  "description": "Telegram support bot: routes private chats into per-user forum topics of a support group.",
+  "main": "dist/index.js",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "postinstall": "tsc"
+  },
+  "dependencies": {
+    "@grammyjs/auto-retry": "^2.0.2",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^20.19.43",
+    "better-sqlite3": "^12.11.1",
+    "dotenv": "^18.0.10",
+    "grammy": "^1.46.0",
+    "typescript": "^7.0.2"
+  }
+}
