@@ -53,6 +53,8 @@ const MIGRATIONS: readonly string[] = [
    );`,
   // v7: who wrote last in the question, to tell "unanswered" from "answered" on timeout.
   `ALTER TABLE conversations ADD COLUMN last_actor TEXT NOT NULL DEFAULT 'user';`,
+  // v8: the question's header message in the support group (carries the quick-action buttons).
+  `ALTER TABLE conversations ADD COLUMN header_message_id INTEGER;`,
 ];
 
 export function openDatabase(filePath: string): DB {

@@ -6,6 +6,7 @@ import type { SettingsRepository } from "../db/settingsRepository";
 import type { UserProfile } from "../db/userRepository";
 import { detectLang, TEXTS, type Lang } from "../i18n";
 import { logger } from "../logger";
+import { questionActions } from "../services/questionCloser";
 import { isMissingTopicError, type TopicManager } from "../services/topicManager";
 
 export interface UserHandlerDeps {
@@ -105,11 +106,16 @@ async function deliver(ctx: Context, deps: UserHandlerDeps, lang: Lang): Promise
   const category = conversation.category;
   const newQuestion = !conversation.announced;
   const profile = { ...profileOf(ctx), phone };
+  let headerMessageId = 0;
 
   await sendToTopic(deps, profile, async (threadId) => {
     if (newQuestion) {
       const header = [`🆕 New question`, `🏷 Topic: ${STAFF_LABELS[category]}`, `📱 Phone: ${phone}`].join("\n");
-      await ctx.api.sendMessage(deps.supportGroupId, header, { message_thread_id: threadId });
+      const sent = await ctx.api.sendMessage(deps.supportGroupId, header, {
+        message_thread_id: threadId,
+        reply_markup: questionActions(userId),
+      });
+      headerMessageId = sent.message_id;
       await deps.topics.setStatus(profile, threadId, `🟢${CATEGORY_EMOJI[category]}`);
     }
     // copyMessages: 1–100 IDs per call in strictly increasing order (held is sorted);
@@ -124,7 +130,7 @@ async function deliver(ctx: Context, deps: UserHandlerDeps, lang: Lang): Promise
   deps.contacts.clearPending(userId);
   deps.conversations.touch(userId, "user");
   if (newQuestion) {
-    deps.conversations.markAnnounced(userId);
+    deps.conversations.markAnnounced(userId, headerMessageId);
     await ctx.reply(deps.greetingText[lang], { reply_markup: { remove_keyboard: true } });
   }
   return true;

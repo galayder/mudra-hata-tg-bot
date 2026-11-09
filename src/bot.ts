@@ -12,6 +12,7 @@ import { registerStaffHandlers } from "./handlers/staffMessages";
 import { registerUserHandlers } from "./handlers/userMessages";
 import { logger } from "./logger";
 import { IdleSweeper } from "./services/idleSweeper";
+import { QuestionCloser } from "./services/questionCloser";
 import { TopicManager } from "./services/topicManager";
 
 export function createBot(config: Config, db: DB): { bot: Bot; sweeper: IdleSweeper } {
@@ -34,6 +35,15 @@ export function createBot(config: Config, db: DB): { bot: Bot; sweeper: IdleSwee
 
   const settings = new SettingsRepository(db);
   const conversations = new ConversationRepository(db, config.sessionIdleMs);
+  const closer = new QuestionCloser({
+    api: bot.api,
+    topics,
+    conversations,
+    settings,
+    supportGroupId: config.supportGroupId,
+    idleMs: config.sessionIdleMs,
+    supportPhone: config.supportPhone,
+  });
 
   // Order matters: menu commands/buttons must be handled before the catch-all forwarder.
   registerMenuHandlers(bot, { settings, conversations, startText: config.startText, websiteUrl: config.websiteUrl });
@@ -50,6 +60,7 @@ export function createBot(config: Config, db: DB): { bot: Bot; sweeper: IdleSwee
     settings,
     participants: new ParticipantRepository(db),
     conversations,
+    closer,
     supportGroupId: config.supportGroupId,
   });
 
@@ -60,15 +71,7 @@ export function createBot(config: Config, db: DB): { bot: Bot; sweeper: IdleSwee
     else logger.error(`Unhandled error in ${where}`, error);
   });
 
-  const sweeper = new IdleSweeper({
-    api: bot.api,
-    topics,
-    conversations,
-    settings,
-    supportGroupId: config.supportGroupId,
-    idleMs: config.sessionIdleMs,
-    supportPhone: config.supportPhone,
-  });
+  const sweeper = new IdleSweeper(conversations, closer, config.sessionIdleMs);
 
   return { bot, sweeper };
 }

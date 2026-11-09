@@ -14,6 +14,8 @@ export interface Conversation {
   status: "open" | "closed";
   announced: boolean;
   lastActivity: number;
+  /** Header message in the support group; buttons on any other (older) header are stale. */
+  headerMessageId: number | null;
 }
 
 interface Row {
@@ -21,6 +23,7 @@ interface Row {
   status: string;
   announced: number;
   last_activity: number;
+  header_message_id: number | null;
 }
 
 export class ConversationRepository {
@@ -38,22 +41,24 @@ export class ConversationRepository {
     private readonly idleMs: number,
   ) {
     this.getStmt = db.prepare<[number], Row>(
-      "SELECT category, status, announced, last_activity FROM conversations WHERE user_id = ?",
+      "SELECT category, status, announced, last_activity, header_message_id FROM conversations WHERE user_id = ?",
     );
     this.startStmt = db.prepare<[number, string | null, number]>(
       `INSERT INTO conversations (user_id, category, status, announced, last_activity, last_actor)
        VALUES (?, ?, 'open', 0, ?, 'user')
        ON CONFLICT(user_id) DO UPDATE SET
-         category = excluded.category, status = 'open', announced = 0,
+         category = excluded.category, status = 'open', announced = 0, header_message_id = NULL,
          last_activity = excluded.last_activity, last_actor = 'user'`,
     );
-    this.announcedStmt = db.prepare<[number]>("UPDATE conversations SET announced = 1 WHERE user_id = ?");
+    this.announcedStmt = db.prepare<[number, number]>(
+      "UPDATE conversations SET announced = 1, header_message_id = ? WHERE user_id = ?",
+    );
     this.touchStmt = db.prepare<[number, string, number]>(
       "UPDATE conversations SET last_activity = ?, last_actor = ? WHERE user_id = ? AND status = 'open'",
     );
     // Only questions that reached the support group: a topic picked and the header posted.
-    this.expiredStmt = db.prepare<[number], { user_id: number; last_actor: string }>(
-      `SELECT user_id, last_actor FROM conversations
+    this.expiredStmt = db.prepare<[number], { user_id: number; last_actor: string; header_message_id: number | null }>(
+      `SELECT user_id, last_actor, header_message_id FROM conversations
        WHERE status = 'open' AND category IS NOT NULL AND announced = 1 AND last_activity < ?`,
     );
     this.closeIfIdleStmt = db.prepare<[number, number]>(
@@ -72,6 +77,7 @@ export class ConversationRepository {
       status: row.status === "closed" ? "closed" : "open",
       announced: row.announced === 1,
       lastActivity: row.last_activity,
+      headerMessageId: row.header_message_id,
     };
   }
 
@@ -96,8 +102,8 @@ export class ConversationRepository {
     this.startStmt.run(userId, category, Date.now());
   }
 
-  markAnnounced(userId: number): void {
-    this.announcedStmt.run(userId);
+  markAnnounced(userId: number, headerMessageId: number): void {
+    this.announcedStmt.run(headerMessageId, userId);
   }
 
   /** Records a message in the open question from the user or from staff. */
@@ -106,10 +112,11 @@ export class ConversationRepository {
   }
 
   /** Delivered questions with no messages since `cutoff`. */
-  expired(cutoff: number): { userId: number; lastActor: Actor }[] {
+  expired(cutoff: number): { userId: number; lastActor: Actor; headerMessageId: number | null }[] {
     return this.expiredStmt.all(cutoff).map((row) => ({
       userId: row.user_id,
       lastActor: row.last_actor === "staff" ? "staff" : "user",
+      headerMessageId: row.header_message_id,
     }));
   }
 

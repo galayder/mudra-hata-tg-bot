@@ -31,7 +31,8 @@ export const TEXTS = {
     describe: "Опишіть, будь ласка, ваше питання одним або кількома повідомленнями.",
     timeoutApology:
       "😔 Вибачте, нам не вдалося вчасно відповісти на ваше звернення. Ви можете поставити питання ще раз — оберіть тему нижче — або зателефонувати нам: {phone}",
-    closed: "✅ Ваше звернення закрито. Якщо потрібна ще допомога — оберіть тему та напишіть нам.",
+    resolved: "✅ Ваше питання вирішено. Якщо потрібна ще допомога — оберіть тему та напишіть нам.",
+    closed: "🔒 Ваше звернення закрито. Якщо потрібна ще допомога — оберіть тему та напишіть нам.",
   },
   en: {
     choosePrompt: "Choose your language",
@@ -52,7 +53,8 @@ export const TEXTS = {
     describe: "Please describe your question in one or more messages.",
     timeoutApology:
       "😔 We're sorry we were unable to respond to your request. You can ask your question again — choose a topic below — or call us: {phone}",
-    closed: "✅ Your request has been closed. If you need more help, choose a topic and write to us.",
+    resolved: "✅ Your question has been resolved. If you need more help, choose a topic and write to us.",
+    closed: "🔒 Your request has been closed. If you need more help, choose a topic and write to us.",
   },
 } as const satisfies Record<Lang, Record<string, string>>;
 

@@ -27,9 +27,10 @@ The mapping from user to topic is stored in SQLite (`./data/bot.sqlite`). The bo
 | User starts a new question (first message ever, after staff `/close`, or after `SESSION_IDLE_HOURS` of silence) | The message is held. The bot asks for a topic with a keyboard: **🐞 Проблема / Problem** and **💡 Запропонувати функцію / Request a feature**. The Bot API can't disable typing, so anything typed meanwhile is held too. |
 | User picks a topic | If the user has never shared a phone number, the bot asks for it with a **📱 Share phone number** button (Telegram's `request_contact`). Otherwise the held messages are delivered. |
 | User shares their phone number | It's saved once and reused for later questions. Sending someone else's contact card is rejected. |
-| A question is delivered for the first time | In the user's support topic the bot posts `🆕 New question · 🏷 Topic · 📱 Phone`, renames the topic to `🟢🐞 Name` or `🟢💡 Name`, copies all held messages in order, and sends the user the greeting. |
+| A question is delivered for the first time | In the user's support topic the bot posts `🆕 New question · 🏷 Topic · 📱 Phone`, renames the topic to `🟢🐞 Name` or `🟢💡 Name`, copies all held messages in order, and sends the user the greeting. The header has quick-action buttons **✅ Resolved** and **🔒 Close**. |
 | User sends any later message | The message is copied into their topic while the question is still open. |
-| A staff member sends `/close` in a user's topic | The question is closed, the topic is renamed `✅ Name`, and the user is told and shown the topic keyboard again. |
+| A staff member taps **✅ Resolved** on the question header, or sends `/resolve` in the topic | The question is closed as solved: the buttons are removed, `✅ Resolved by {name}` is posted, the topic is renamed `✅ Name`, and the user is told the question was resolved and shown the topic keyboard. |
+| A staff member taps **🔒 Close**, or sends `/close` | The same, but as closed without a resolution (e.g. spam or a duplicate): topic `🔒 Name`, the user gets "your request has been closed". Buttons on an older question's header only show "This question is already closed". |
 | A question gets no messages from either side for `SESSION_IDLE_HOURS` | The bot closes it automatically (checked every minute). If the user wrote last (support never answered), the user gets an apology with `SUPPORT_PHONE` and the topic is renamed `⏰ Name`. If staff wrote last, the user gets the usual "request closed" message and the topic becomes `✅ Name`. Either way the user sees the topic keyboard again. |
 | A staff member writes in a user's topic | The message is copied to that user. |
 | A staff member replies to a user for the first time | Before the reply, the user gets "👤 {first name} joined the chat" in their language. This happens once per staff member per user. |
@@ -57,6 +58,7 @@ src/
     conversationRepository.ts  The user's current question: topic, open/closed, last activity
     participantRepository.ts  Staff already introduced to each user ("X joined the chat")
   services/
+    questionCloser.ts       Closes a question (buttons, /resolve, /close, timeout): topic status, notes, user message
     idleSweeper.ts          Closes questions after SESSION_IDLE_HOURS of silence and notifies the user
     topicManager.ts         Finds, creates and recreates topics; no duplicate topics on simultaneous messages
   handlers/

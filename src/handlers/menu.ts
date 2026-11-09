@@ -97,7 +97,11 @@ export async function setBotCommands(bot: Bot, supportGroupId: number): Promise<
   await bot.api.setMyCommands(commands("en"), privateScope);
   await bot.api.setMyCommands(commands("uk"), { ...privateScope, language_code: "uk" });
   // Staff side: /close in the support group.
-  await bot.api.setMyCommands([{ command: "close", description: "Close this user's question" }], {
+  const staffCommands = [
+    { command: "resolve", description: "Mark this user's question as resolved" },
+    { command: "close", description: "Close this user's question without a resolution" },
+  ];
+  await bot.api.setMyCommands(staffCommands, {
     scope: { type: "chat", chat_id: supportGroupId },
   });
 }
