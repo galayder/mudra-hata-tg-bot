@@ -103,6 +103,11 @@ export class TopicManager {
     return this.users.findByUserId(userId);
   }
 
+  /** Drops the user's topic mapping (the topic was deleted); the next delivery creates a new one. */
+  forget(userId: number): void {
+    this.users.delete(userId);
+  }
+
   /**
    * Renames the topic to show the question's status, e.g. "🟢🐞 Ann (@ann)" or "✅ Ann (@ann)".
    * Best effort: a failed rename (e.g. "TOPIC_NOT_MODIFIED") never blocks delivery.

@@ -29,6 +29,8 @@ interface Row {
 export class ConversationRepository {
   private readonly getStmt;
   private readonly startStmt;
+  private readonly resetParticipantsStmt;
+  private readonly startTx;
   private readonly announcedStmt;
   private readonly touchStmt;
   private readonly closeStmt;
@@ -50,6 +52,12 @@ export class ConversationRepository {
          category = excluded.category, status = 'open', announced = 0, header_message_id = NULL,
          last_activity = excluded.last_activity, last_actor = 'user'`,
     );
+    // "X joined the chat" is once per staff member per question, so a new question forgets them.
+    this.resetParticipantsStmt = db.prepare<[number]>("DELETE FROM chat_participants WHERE user_id = ?");
+    this.startTx = db.transaction((userId: number, category: string | null) => {
+      this.startStmt.run(userId, category, Date.now());
+      this.resetParticipantsStmt.run(userId);
+    });
     this.announcedStmt = db.prepare<[number, number]>(
       "UPDATE conversations SET announced = 1, header_message_id = ? WHERE user_id = ?",
     );
@@ -99,7 +107,7 @@ export class ConversationRepository {
 
   /** Starts a new question, with or without a topic yet. Replaces the previous one. */
   start(userId: number, category: Category | null): void {
-    this.startStmt.run(userId, category, Date.now());
+    this.startTx(userId, category);
   }
 
   markAnnounced(userId: number, headerMessageId: number): void {

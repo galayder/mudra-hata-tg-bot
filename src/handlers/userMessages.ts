@@ -109,12 +109,21 @@ async function deliver(ctx: Context, deps: UserHandlerDeps, lang: Lang): Promise
   const profile = { ...profileOf(ctx), phone };
   let headerMessageId = 0;
 
-  // announce: post the header first. True for a new question, and also when the topic
-  // had to be recreated mid-question (the old one, with its header, is gone).
-  await sendToTopic(deps, profile, newQuestion, async (threadId, announce) => {
-    if (!announce && !(await deps.topics.exists(profile, threadId, status))) {
-      throw new TopicGoneError(threadId);
+  // Staff deleted the topic of an open question: that question is over. Keep the
+  // message held and ask for a topic, exactly like a new question.
+  if (!newQuestion) {
+    const user = deps.topics.findUser(userId);
+    if (user && !(await deps.topics.exists(profile, user.threadId, status))) {
+      logger.info(`Topic ${user.threadId} of user ${userId} was deleted; starting a new question`);
+      deps.topics.forget(userId);
+      deps.conversations.start(userId, null);
+      await ctx.reply(TEXTS[lang].chooseTopic, { reply_markup: categoryKeyboard(lang) });
+      return true;
     }
+  }
+
+  // announce: post the header first (new question, or a topic recreated for it).
+  await sendToTopic(deps, profile, newQuestion, async (threadId, announce) => {
     if (announce) {
       const header = [`🆕 New question`, `🏷 Topic: ${STAFF_LABELS[category]}`, `📱 Phone: ${phone}`].join("\n");
       const sent = await ctx.api.sendMessage(deps.supportGroupId, header, {

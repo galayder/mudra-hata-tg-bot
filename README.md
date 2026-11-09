@@ -33,10 +33,10 @@ The mapping from user to topic is stored in SQLite (`./data/bot.sqlite`). The bo
 | A staff member taps **🔒 Close**, or sends `/close` | The same, but as closed without a resolution (e.g. spam or a duplicate): topic `🔒 Name`, the user gets "your request has been closed". Buttons on an older question's header only show "This question is already closed". |
 | A question gets no messages from either side for `SESSION_IDLE_HOURS` | The bot closes it automatically (checked every minute). If the user wrote last (support never answered), the user gets an apology with `SUPPORT_PHONE` and the topic is renamed `⏰ Name`. If staff wrote last, the user gets the usual "request closed" message and the topic becomes `✅ Name`. Either way the user sees the topic keyboard again. |
 | A staff member writes in a user's topic | The message is copied to that user. |
-| A staff member replies to a user for the first time | Before the reply, the user gets "👤 {first name} joined the chat" in their language. This happens once per staff member per user. |
+| A staff member replies for the first time in a question | Before the reply, the user gets "👤 {first name} joined the chat" in their language. This happens once per staff member per question. |
 | A staff member writes a message starting with `/` | The message is **not** sent. Use this for internal notes, for example `/note checking with billing`. |
 | A message is posted in the *General* topic | The bot ignores it. |
-| A staff member deleted the user's topic | The next time the user writes, the bot creates a new topic for them. |
+| A staff member deleted the user's topic | The user's open question ends. Their next message is held, they are asked to pick a topic again, and a new topic is created for the new question. |
 | The user blocked the bot | The bot posts "⚠️ Not delivered" in the topic. |
 | `/chatid` is sent in any chat | The bot replies with the chat's ID. This helps during setup. |
 
