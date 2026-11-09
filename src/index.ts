@@ -1,4 +1,5 @@
 import { checkSupportGroup, createBot } from "./bot";
+import { setBotCommands } from "./handlers/menu";
 import { loadConfig } from "./config";
 import { openDatabase } from "./db/database";
 import { logger, setLogLevel } from "./logger";
@@ -26,11 +27,12 @@ async function main(): Promise<void> {
 
   await bot.init();
   await checkSupportGroup(bot, config.supportGroupId);
+  await setBotCommands(bot).catch((err: unknown) => logger.warn("Could not set bot commands", err));
 
   // Long polling: no public URL or open port needed, which suits Pterodactyl hosts.
   await bot.start({
     drop_pending_updates: false,
-    allowed_updates: ["message"],
+    allowed_updates: ["message", "callback_query"],
     onStart: (me) => logger.info(`Bot @${me.username} started (support group ${config.supportGroupId})`),
   });
 }

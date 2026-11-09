@@ -2,7 +2,9 @@ import { Bot, GrammyError, HttpError } from "grammy";
 import { autoRetry } from "@grammyjs/auto-retry";
 import type { Config } from "./config";
 import type { DB } from "./db/database";
+import { SettingsRepository } from "./db/settingsRepository";
 import { UserRepository } from "./db/userRepository";
+import { registerMenuHandlers } from "./handlers/menu";
 import { registerStaffHandlers } from "./handlers/staffMessages";
 import { registerUserHandlers } from "./handlers/userMessages";
 import { logger } from "./logger";
@@ -26,11 +28,15 @@ export function createBot(config: Config, db: DB): Bot {
     });
   });
 
+  const settings = new SettingsRepository(db);
+
+  // Order matters: menu commands/buttons must be handled before the catch-all forwarder.
+  registerMenuHandlers(bot, { settings, startText: config.startText });
   registerUserHandlers(bot, {
     topics,
+    settings,
     supportGroupId: config.supportGroupId,
     greetingText: config.greetingText,
-    startText: config.startText,
   });
   registerStaffHandlers(bot, { topics, supportGroupId: config.supportGroupId });
 

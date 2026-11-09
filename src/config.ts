@@ -1,5 +1,6 @@
 import path from "node:path";
 import dotenv from "dotenv";
+import type { Lang } from "./i18n";
 
 // Loads .env from the working directory (the server root on Pterodactyl).
 // Variables already set in the environment (e.g. by the hosting panel) win.
@@ -11,17 +12,22 @@ export interface Config {
   botToken: string;
   supportGroupId: number;
   dbPath: string;
-  greetingText: string;
-  startText: string;
+  greetingText: Record<Lang, string>;
+  startText: Record<Lang, string>;
   logLevel: LogLevel;
 }
 
-const DEFAULT_GREETING =
-  "Thanks for reaching out! Your message has been received and is being processed. " +
-  "Our team will reply here shortly.";
+const DEFAULT_GREETING: Record<Lang, string> = {
+  uk: "Дякуємо за звернення! Ваше повідомлення отримано та обробляється. Наша команда невдовзі відповість тут.",
+  en:
+    "Thanks for reaching out! Your message has been received and is being processed. " +
+    "Our team will reply here shortly.",
+};
 
-const DEFAULT_START =
-  "Hi! Send your question here and our support team will get back to you.";
+const DEFAULT_START: Record<Lang, string> = {
+  uk: "Вітаємо! Напишіть своє питання тут, і наша команда підтримки відповість вам.",
+  en: "Hi! Send your question here and our support team will get back to you.",
+};
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -34,6 +40,19 @@ function required(name: string): string {
 function optional(name: string, fallback: string): string {
   const value = process.env[name]?.trim();
   return value ? value : fallback;
+}
+
+/** "\n" in .env values becomes a real line break. */
+function text(name: string, fallback: string): string {
+  return optional(name, fallback).replace(/\\n/g, "\n");
+}
+
+/** NAME_UK / NAME_EN; the legacy un-suffixed NAME still overrides the English text. */
+function localized(name: string, defaults: Record<Lang, string>): Record<Lang, string> {
+  return {
+    uk: text(`${name}_UK`, defaults.uk),
+    en: text(`${name}_EN`, text(name, defaults.en)),
+  };
 }
 
 function parseGroupId(raw: string): number {
@@ -57,9 +76,8 @@ export function loadConfig(): Config {
     botToken: required("BOT_TOKEN"),
     supportGroupId: parseGroupId(required("SUPPORT_GROUP_ID")),
     dbPath: path.resolve(optional("DB_PATH", "./data/bot.sqlite")),
-    // "\n" in .env values becomes a real line break.
-    greetingText: optional("GREETING_TEXT", DEFAULT_GREETING).replace(/\\n/g, "\n"),
-    startText: optional("START_TEXT", DEFAULT_START).replace(/\\n/g, "\n"),
+    greetingText: localized("GREETING_TEXT", DEFAULT_GREETING),
+    startText: localized("START_TEXT", DEFAULT_START),
     logLevel: parseLogLevel(optional("LOG_LEVEL", "info")),
   };
 }

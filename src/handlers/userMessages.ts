@@ -1,22 +1,23 @@
 import type { Bot, Context } from "grammy";
+import type { SettingsRepository } from "../db/settingsRepository";
 import type { UserProfile } from "../db/userRepository";
+import { detectLang, type Lang } from "../i18n";
 import { logger } from "../logger";
 import { isMissingTopicError, type TopicManager } from "../services/topicManager";
 
 export interface UserHandlerDeps {
   topics: TopicManager;
   supportGroupId: number;
-  greetingText: string;
-  startText: string;
+  settings: SettingsRepository;
+  greetingText: Record<Lang, string>;
 }
 
-/** Private chat → user's topic in the support group. */
+/**
+ * Private chat → user's topic in the support group.
+ * Register after the menu handlers so /start, /settings and menu buttons are not forwarded.
+ */
 export function registerUserHandlers(bot: Bot, deps: UserHandlerDeps): void {
   const privateChat = bot.chatType("private");
-
-  privateChat.command("start", async (ctx) => {
-    await ctx.reply(deps.startText);
-  });
 
   privateChat.on("message", async (ctx) => {
     const from = ctx.from;
@@ -39,7 +40,8 @@ export function registerUserHandlers(bot: Bot, deps: UserHandlerDeps): void {
     }
 
     if (isFirstContact) {
-      await ctx.reply(deps.greetingText);
+      const lang = deps.settings.getLang(from.id) ?? detectLang(from.language_code);
+      await ctx.reply(deps.greetingText[lang]);
     }
   });
 }

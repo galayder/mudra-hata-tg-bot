@@ -16,6 +16,12 @@ const MIGRATIONS: readonly string[] = [
      updated_at  INTEGER NOT NULL
    );
    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_thread_id ON users(thread_id);`,
+  // v2: per-user settings (chosen interface language).
+  `CREATE TABLE IF NOT EXISTS user_settings (
+     user_id     INTEGER PRIMARY KEY,
+     lang        TEXT    NOT NULL,
+     updated_at  INTEGER NOT NULL
+   );`,
 ];
 
 export function openDatabase(filePath: string): DB {
