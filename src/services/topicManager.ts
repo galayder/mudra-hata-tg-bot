@@ -12,9 +12,21 @@ const TOPIC_NAME_LIMIT = 128;
 
 /** Telegram errors meaning the stored topic no longer exists in the group. */
 export function isMissingTopicError(err: unknown): boolean {
+  if (err instanceof TopicGoneError) return true;
   if (!(err instanceof GrammyError)) return false;
   const text = err.description.toLowerCase();
-  return text.includes("thread not found") || text.includes("topic_deleted");
+  return text.includes("thread not found") || text.includes("topic_deleted") || text.includes("topic_id_invalid");
+}
+
+/**
+ * Thrown when a message meant for a topic landed elsewhere. Telegram may accept a send
+ * to a deleted topic and put the message in another topic (usually General) instead
+ * of returning an error, so the returned Message's message_thread_id is checked.
+ */
+export class TopicGoneError extends Error {
+  constructor(threadId: number) {
+    super(`Topic ${threadId} no longer exists`);
+  }
 }
 
 export function displayName(profile: UserProfile): string {
@@ -95,6 +107,25 @@ export class TopicManager {
    * Renames the topic to show the question's status, e.g. "🟢🐞 Ann (@ann)" or "✅ Ann (@ann)".
    * Best effort: a failed rename (e.g. "TOPIC_NOT_MODIFIED") never blocks delivery.
    */
+  /**
+   * Checks the topic still exists by (re)applying its status name. Telegram answers
+   * TOPIC_NOT_MODIFIED for an existing topic that already has this name, and
+   * TOPIC_ID_INVALID / "thread not found" for a deleted one. Unknown errors count as
+   * "exists" so a hiccup never blocks delivery.
+   */
+  async exists(profile: UserProfile, threadId: number, prefix: string): Promise<boolean> {
+    try {
+      await this.api.editForumTopic(this.groupId, threadId, { name: topicName(profile, prefix) });
+      return true;
+    } catch (err) {
+      if (isMissingTopicError(err)) return false;
+      if (!(err instanceof GrammyError && err.description.toUpperCase().includes("TOPIC_NOT_MODIFIED"))) {
+        logger.debug(`Topic ${threadId} check failed, assuming it exists`, err instanceof GrammyError ? err.description : err);
+      }
+      return true;
+    }
+  }
+
   async setStatus(profile: UserProfile, threadId: number, prefix: string): Promise<void> {
     await this.api.editForumTopic(this.groupId, threadId, { name: topicName(profile, prefix) }).catch((err: unknown) => {
       logger.debug(`Could not rename topic ${threadId}`, err instanceof GrammyError ? err.description : err);

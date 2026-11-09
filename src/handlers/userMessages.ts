@@ -7,7 +7,7 @@ import type { UserProfile } from "../db/userRepository";
 import { detectLang, TEXTS, type Lang } from "../i18n";
 import { logger } from "../logger";
 import { questionActions } from "../services/questionCloser";
-import { isMissingTopicError, type TopicManager } from "../services/topicManager";
+import { isMissingTopicError, TopicGoneError, type TopicManager } from "../services/topicManager";
 
 export interface UserHandlerDeps {
   topics: TopicManager;
@@ -104,19 +104,30 @@ async function deliver(ctx: Context, deps: UserHandlerDeps, lang: Lang): Promise
   if (!conversation?.category || phone === undefined || held.length === 0) return false;
 
   const category = conversation.category;
+  const status = `🟢${CATEGORY_EMOJI[category]}`;
   const newQuestion = !conversation.announced;
   const profile = { ...profileOf(ctx), phone };
   let headerMessageId = 0;
 
-  await sendToTopic(deps, profile, async (threadId) => {
-    if (newQuestion) {
+  // announce: post the header first. True for a new question, and also when the topic
+  // had to be recreated mid-question (the old one, with its header, is gone).
+  await sendToTopic(deps, profile, newQuestion, async (threadId, announce) => {
+    if (!announce && !(await deps.topics.exists(profile, threadId, status))) {
+      throw new TopicGoneError(threadId);
+    }
+    if (announce) {
       const header = [`🆕 New question`, `🏷 Topic: ${STAFF_LABELS[category]}`, `📱 Phone: ${phone}`].join("\n");
       const sent = await ctx.api.sendMessage(deps.supportGroupId, header, {
         message_thread_id: threadId,
         reply_markup: questionActions(userId),
       });
+      if (sent.message_thread_id !== threadId) {
+        // Landed outside the user's topic: remove it and start over in a new topic.
+        await ctx.api.deleteMessage(deps.supportGroupId, sent.message_id).catch(() => undefined);
+        throw new TopicGoneError(threadId);
+      }
       headerMessageId = sent.message_id;
-      await deps.topics.setStatus(profile, threadId, `🟢${CATEGORY_EMOJI[category]}`);
+      await deps.topics.setStatus(profile, threadId, status);
     }
     // copyMessages: 1–100 IDs per call in strictly increasing order (held is sorted);
     // albums stay grouped, messages the user deleted meanwhile are skipped.
@@ -129,27 +140,32 @@ async function deliver(ctx: Context, deps: UserHandlerDeps, lang: Lang): Promise
 
   deps.contacts.clearPending(userId);
   deps.conversations.touch(userId, "user");
+  if (headerMessageId) deps.conversations.markAnnounced(userId, headerMessageId);
   if (newQuestion) {
-    deps.conversations.markAnnounced(userId, headerMessageId);
     await ctx.reply(deps.greetingText[lang], { reply_markup: { remove_keyboard: true } });
   }
   return true;
 }
 
-/** Finds (or creates) the user's topic and runs `send`, recreating the topic once if it was deleted. */
+/**
+ * Finds (or creates) the user's topic and runs `send`. If the topic turns out to be
+ * deleted, creates a new one once and runs `send` again with announce = true.
+ */
 async function sendToTopic(
   deps: UserHandlerDeps,
   profile: UserProfile,
-  send: (threadId: number) => Promise<void>,
+  announce: boolean,
+  send: (threadId: number, announce: boolean) => Promise<void>,
 ): Promise<void> {
-  const { threadId } = await deps.topics.resolve(profile);
+  const { threadId, isFirstContact } = await deps.topics.resolve(profile);
   try {
-    await send(threadId);
+    // A topic created just now cannot be stale, and has no header yet.
+    await send(threadId, announce || isFirstContact);
   } catch (err) {
     if (!isMissingTopicError(err)) throw err;
     logger.warn(`Topic ${threadId} for user ${profile.userId} is gone, recreating`);
     const recreated = await deps.topics.recreate(profile);
-    await send(recreated.threadId);
+    await send(recreated.threadId, true);
   }
 }
 
