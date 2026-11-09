@@ -122,7 +122,7 @@ async function deliver(ctx: Context, deps: UserHandlerDeps, lang: Lang): Promise
   });
 
   deps.contacts.clearPending(userId);
-  deps.conversations.touch(userId);
+  deps.conversations.touch(userId, "user");
   if (newQuestion) {
     deps.conversations.markAnnounced(userId);
     await ctx.reply(deps.greetingText[lang], { reply_markup: { remove_keyboard: true } });

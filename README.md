@@ -29,6 +29,7 @@ The mapping from user to topic is stored in SQLite (`./data/bot.sqlite`). The bo
 | A question is delivered for the first time | In the user's support topic the bot posts `🆕 New question · 🏷 Topic · 📱 Phone`, renames the topic to `🟢🐞 Name` or `🟢💡 Name`, copies all held messages in order, and sends the user the greeting. |
 | User sends any later message | The message is copied into their topic while the question is still open. |
 | A staff member sends `/close` in a user's topic | The question is closed, the topic is renamed `✅ Name`, and the user is told and shown the topic keyboard again. |
+| A question gets no messages from either side for `SESSION_IDLE_HOURS` | The bot closes it automatically (checked every minute). If the user wrote last (support never answered), the user gets an apology with `SUPPORT_PHONE` and the topic is renamed `⏰ Name`. If staff wrote last, the user gets the usual "request closed" message and the topic becomes `✅ Name`. Either way the user sees the topic keyboard again. |
 | A staff member writes in a user's topic | The message is copied to that user. |
 | A staff member replies to a user for the first time | Before the reply, the user gets "👤 {first name} joined the chat" in their language. This happens once per staff member per user. |
 | A staff member writes a message starting with `/` | The message is **not** sent. Use this for internal notes, for example `/note checking with billing`. |
@@ -55,6 +56,7 @@ src/
     conversationRepository.ts  The user's current question: topic, open/closed, last activity
     participantRepository.ts  Staff already introduced to each user ("X joined the chat")
   services/
+    idleSweeper.ts          Closes questions after SESSION_IDLE_HOURS of silence and notifies the user
     topicManager.ts         Finds, creates and recreates topics; no duplicate topics on simultaneous messages
   handlers/
     menu.ts                 /start, /settings, the language picker and the commands behind the Menu button
@@ -75,6 +77,7 @@ All settings come from environment variables. The bot reads them from a `.env` f
 | `GREETING_TEXT_UK`, `GREETING_TEXT_EN` | | *(receipt notice)* | Automatic reply to a user's first message, per language. Write `\n` for a line break. The old `GREETING_TEXT` still works as the English text. |
 | `START_TEXT_UK`, `START_TEXT_EN` | | *(welcome text)* | Reply to `/start`, per language. The old `START_TEXT` still works as the English text. |
 | `SESSION_IDLE_HOURS` | | `12` | After this many hours with no messages from the user or staff, the user's next message starts a new question with a topic choice |
+| `SUPPORT_PHONE` | | `+380505255167` | Phone number in the apology sent when a question times out without an answer |
 | `LOG_LEVEL` | | `info` | One of `debug`, `info`, `warn`, `error` |
 
 ## Local development

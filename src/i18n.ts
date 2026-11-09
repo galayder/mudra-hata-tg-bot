@@ -26,6 +26,8 @@ export const TEXTS = {
     chooseTopic: "Оберіть, будь ласка, тему звернення 👇",
     topicPlaceholder: "Оберіть тему нижче",
     describe: "Опишіть, будь ласка, ваше питання одним або кількома повідомленнями.",
+    timeoutApology:
+      "😔 Вибачте, нам не вдалося вчасно відповісти на ваше звернення. Ви можете поставити питання ще раз — оберіть тему нижче — або зателефонувати нам: {phone}",
     closed: "✅ Ваше звернення закрито. Якщо потрібна ще допомога — оберіть тему та напишіть нам.",
   },
   en: {
@@ -42,6 +44,8 @@ export const TEXTS = {
     chooseTopic: "Please choose the topic of your request 👇",
     topicPlaceholder: "Choose a topic below",
     describe: "Please describe your question in one or more messages.",
+    timeoutApology:
+      "😔 We're sorry we were unable to respond to your request. You can ask your question again — choose a topic below — or call us: {phone}",
     closed: "✅ Your request has been closed. If you need more help, choose a topic and write to us.",
   },
 } as const satisfies Record<Lang, Record<string, string>>;

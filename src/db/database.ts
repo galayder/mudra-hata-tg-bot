@@ -51,6 +51,8 @@ const MIGRATIONS: readonly string[] = [
      announced      INTEGER NOT NULL DEFAULT 0,
      last_activity  INTEGER NOT NULL
    );`,
+  // v7: who wrote last in the question, to tell "unanswered" from "answered" on timeout.
+  `ALTER TABLE conversations ADD COLUMN last_actor TEXT NOT NULL DEFAULT 'user';`,
 ];
 
 export function openDatabase(filePath: string): DB {

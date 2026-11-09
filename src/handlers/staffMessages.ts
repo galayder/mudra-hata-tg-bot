@@ -5,7 +5,7 @@ import type { ParticipantRepository } from "../db/participantRepository";
 import type { SettingsRepository } from "../db/settingsRepository";
 import { detectLang, TEXTS } from "../i18n";
 import { logger } from "../logger";
-import type { TopicManager } from "../services/topicManager";
+import { profileFromRecord, type TopicManager } from "../services/topicManager";
 
 export interface StaffHandlerDeps {
   topics: TopicManager;
@@ -49,13 +49,7 @@ export function registerStaffHandlers(bot: Bot, deps: StaffHandlerDeps): void {
       await ctx.reply("There is no open question to close.", replyTo(ctx));
       return;
     }
-    const profile = {
-      userId: user.userId,
-      firstName: user.firstName,
-      lastName: user.lastName ?? undefined,
-      username: user.username ?? undefined,
-    };
-    await deps.topics.setStatus(profile, threadId, "✅");
+    await deps.topics.setStatus(profileFromRecord(user), threadId, "✅");
     const lang = deps.settings.getLang(user.userId) ?? detectLang(user.languageCode ?? undefined);
     try {
       await ctx.api.sendMessage(user.userId, TEXTS[lang].closed, { reply_markup: categoryKeyboard(lang) });
@@ -90,7 +84,7 @@ export function registerStaffHandlers(bot: Bot, deps: StaffHandlerDeps): void {
         deps.participants.markJoined(userId, staff.id);
       }
       await ctx.copyMessage(userId);
-      deps.conversations.touch(userId);
+      deps.conversations.touch(userId, "staff");
     } catch (err) {
       await reportDeliveryFailure(ctx, err);
     }

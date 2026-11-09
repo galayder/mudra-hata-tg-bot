@@ -22,6 +22,16 @@ export function displayName(profile: UserProfile): string {
 }
 
 /** Topic title: optional status prefix (e.g. "🟢🐞"), then "Name (@username)", within Telegram's 128 chars. */
+export function profileFromRecord(user: UserRecord): UserProfile {
+  return {
+    userId: user.userId,
+    firstName: user.firstName,
+    lastName: user.lastName ?? undefined,
+    username: user.username ?? undefined,
+    languageCode: user.languageCode ?? undefined,
+  };
+}
+
 function topicName(profile: UserProfile, prefix = ""): string {
   const lead = prefix ? `${prefix} ` : "";
   const suffix = profile.username ? ` (@${profile.username})` : ` (${profile.userId})`;
@@ -75,6 +85,10 @@ export class TopicManager {
   /** Maps a topic in the support group back to the user who owns it. */
   findUserByThread(threadId: number): UserRecord | undefined {
     return this.users.findByThreadId(threadId);
+  }
+
+  findUser(userId: number): UserRecord | undefined {
+    return this.users.findByUserId(userId);
   }
 
   /**

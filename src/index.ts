@@ -11,13 +11,14 @@ async function main(): Promise<void> {
   const db = openDatabase(config.dbPath);
   logger.info(`Database: ${config.dbPath}`);
 
-  const bot = createBot(config, db);
+  const { bot, sweeper } = createBot(config, db);
 
   let stopping = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (stopping) return;
     stopping = true;
     logger.info(`${signal} received, shutting down`);
+    sweeper.stop();
     await bot.stop();
     db.close();
     process.exit(0);
@@ -27,6 +28,7 @@ async function main(): Promise<void> {
 
   await bot.init();
   await checkSupportGroup(bot, config.supportGroupId);
+  sweeper.start();
   await setBotCommands(bot, config.supportGroupId).catch((err: unknown) => logger.warn("Could not set bot commands", err));
 
   // Long polling: no public URL or open port needed, which suits Pterodactyl hosts.

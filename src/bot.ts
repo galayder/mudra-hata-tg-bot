@@ -11,9 +11,10 @@ import { registerMenuHandlers } from "./handlers/menu";
 import { registerStaffHandlers } from "./handlers/staffMessages";
 import { registerUserHandlers } from "./handlers/userMessages";
 import { logger } from "./logger";
+import { IdleSweeper } from "./services/idleSweeper";
 import { TopicManager } from "./services/topicManager";
 
-export function createBot(config: Config, db: DB): Bot {
+export function createBot(config: Config, db: DB): { bot: Bot; sweeper: IdleSweeper } {
   const bot = new Bot(config.botToken);
 
   // Transparently wait and retry on 429 (flood control) and 5xx errors.
@@ -59,7 +60,17 @@ export function createBot(config: Config, db: DB): Bot {
     else logger.error(`Unhandled error in ${where}`, error);
   });
 
-  return bot;
+  const sweeper = new IdleSweeper({
+    api: bot.api,
+    topics,
+    conversations,
+    settings,
+    supportGroupId: config.supportGroupId,
+    idleMs: config.sessionIdleMs,
+    supportPhone: config.supportPhone,
+  });
+
+  return { bot, sweeper };
 }
 
 /** Logs actionable warnings if the support group is misconfigured. Never throws. */
