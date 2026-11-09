@@ -19,6 +19,10 @@ export const TEXTS = {
     cmdStart: "Почати",
     cmdSettings: "Налаштування",
     staffJoined: "👤 {name} приєднується до чату",
+    askPhone: "Щоб ми могли вам допомогти, поділіться, будь ласка, своїм номером телефону — натисніть кнопку нижче 👇",
+    sharePhoneButton: "📱 Поділитися номером",
+    notOwnContact: "Будь ласка, поділіться власним номером за допомогою кнопки нижче 👇",
+    phoneSaved: "Дякуємо! Номер збережено.",
   },
   en: {
     choosePrompt: "Choose your language",
@@ -27,6 +31,10 @@ export const TEXTS = {
     cmdStart: "Start",
     cmdSettings: "Settings",
     staffJoined: "👤 {name} joined the chat",
+    askPhone: "To help you, we need your phone number. Please tap the button below to share it 👇",
+    sharePhoneButton: "📱 Share phone number",
+    notOwnContact: "Please share your own number using the button below 👇",
+    phoneSaved: "Thanks! Your number has been saved.",
   },
 } as const satisfies Record<Lang, Record<string, string>>;
 

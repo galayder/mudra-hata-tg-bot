@@ -23,7 +23,10 @@ The mapping from user to topic is stored in SQLite (`./data/bot.sqlite`). The bo
 | User sends `/start` before choosing a language | The bot replies with the start text plus 🇺🇦 Українська / 🇬🇧 English buttons. Picking one saves it and replaces the message with the start text in that language. Nothing is forwarded. |
 | User sends `/start` after choosing a language | The bot replies with the start text in their language. |
 | User sends `/settings` | The bot shows the language picker. Picking a language saves it and confirms the change. |
-| User sends their first message | A topic named `Name (@username)` is created, with a card showing the user's details. The message is copied into the topic and the user gets `GREETING_TEXT`. |
+| User writes before sharing a phone number | The message is held, not forwarded. The bot asks for the phone number and shows a **📱 Share phone number** button (Telegram's `request_contact`). Later messages are held too, without asking again. |
+| User taps **📱 Share phone number** | The bot saves the number, creates the user's topic if needed, posts `📱 Phone: +...` there, then copies all held messages in order and sends the greeting. |
+| User sends someone else's contact card instead | The bot asks again for their own number. |
+| User sends their first message (phone already shared) | A topic named `Name (@username)` is created, with a card showing the user's details. The message is copied into the topic and the user gets `GREETING_TEXT`. |
 | User sends any later message | The message is copied into their existing topic. |
 | A staff member writes in a user's topic | The message is copied to that user. |
 | A staff member replies to a user for the first time | Before the reply, the user gets "👤 {first name} joined the chat" in their language. This happens once per staff member per user. |
@@ -46,6 +49,8 @@ src/
     database.ts             Opens SQLite (WAL mode) and applies schema migrations
     userRepository.ts       User ⇄ topic mapping (typed queries)
     settingsRepository.ts   Per-user settings (chosen language)
+    contactRepository.ts    Phone numbers and messages held until the phone is shared
+    participantRepository.ts  Staff already introduced to each user ("X joined the chat")
   services/
     topicManager.ts         Finds, creates and recreates topics; no duplicate topics on simultaneous messages
   handlers/

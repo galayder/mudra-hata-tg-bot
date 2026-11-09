@@ -2,6 +2,7 @@ import { Bot, GrammyError, HttpError } from "grammy";
 import { autoRetry } from "@grammyjs/auto-retry";
 import type { Config } from "./config";
 import type { DB } from "./db/database";
+import { ContactRepository } from "./db/contactRepository";
 import { ParticipantRepository } from "./db/participantRepository";
 import { SettingsRepository } from "./db/settingsRepository";
 import { UserRepository } from "./db/userRepository";
@@ -36,6 +37,7 @@ export function createBot(config: Config, db: DB): Bot {
   registerUserHandlers(bot, {
     topics,
     settings,
+    contacts: new ContactRepository(db),
     supportGroupId: config.supportGroupId,
     greetingText: config.greetingText,
   });

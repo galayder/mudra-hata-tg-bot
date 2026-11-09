@@ -31,6 +31,18 @@ const MIGRATIONS: readonly string[] = [
    );`,
   // v4: the user's Telegram app language, used when they never picked one in /settings.
   `ALTER TABLE users ADD COLUMN language_code TEXT;`,
+  // v5: phone numbers (users are identified by phone) and messages held until one is shared.
+  `CREATE TABLE IF NOT EXISTS user_phones (
+     user_id     INTEGER PRIMARY KEY,
+     phone       TEXT    NOT NULL,
+     shared_at   INTEGER NOT NULL
+   );
+   CREATE TABLE IF NOT EXISTS pending_messages (
+     user_id     INTEGER NOT NULL,
+     message_id  INTEGER NOT NULL,
+     created_at  INTEGER NOT NULL,
+     PRIMARY KEY (user_id, message_id)
+   );`,
 ];
 
 export function openDatabase(filePath: string): DB {
