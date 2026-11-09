@@ -9,7 +9,7 @@ It connects private chats with a support team working in one Telegram group:
 - The user's messages are copied into their topic: text, photos, files, voice messages, stickers, and so on.
 - When someone on the team replies inside a topic, the bot sends that reply to the user's private chat.
 - The first time a user writes, the bot automatically replies that the message was received and is being processed.
-- Users get a menu keyboard with **Start** and **Settings**. The bot speaks Ukrainian and English: by default it follows the user's Telegram language, and users can change it in **Settings**. Messages for the support team stay in English.
+- Telegram's **Menu** button lists `/start` and `/settings`. The bot speaks Ukrainian and English: by default it follows the user's Telegram language, and users can change it in **Settings**. Messages for the support team stay in English.
 
 The mapping from user to topic is stored in SQLite (`./data/bot.sqlite`). The bot uses long polling, so it needs no domain, no webhook and no open port. That makes it a good fit for Pterodactyl hosts such as [Bot-Hosting.net](https://bot-hosting.net/).
 
@@ -20,8 +20,9 @@ The mapping from user to topic is stored in SQLite (`./data/bot.sqlite`). The bo
 | Situation | Result |
 |---|---|
 | User opens the bot for the first time | Telegram shows a **Start** button, which sends `/start`. |
-| User sends `/start` or taps **🏠 Start** | The bot replies with the start text and shows the menu keyboard (**🏠 Start**, **⚙️ Settings**). Nothing is forwarded. |
-| User sends `/settings` or taps **⚙️ Settings** | The bot shows a language picker (🇺🇦 Українська / 🇬🇧 English). Picking one saves it and refreshes the menu in that language. |
+| User sends `/start` before choosing a language | The bot replies with the start text plus 🇺🇦 Українська / 🇬🇧 English buttons. Picking one saves it and replaces the message with the start text in that language. Nothing is forwarded. |
+| User sends `/start` after choosing a language | The bot replies with the start text in their language. |
+| User sends `/settings` | The bot shows the language picker. Picking a language saves it and confirms the change. |
 | User sends their first message | A topic named `Name (@username)` is created, with a card showing the user's details. The message is copied into the topic and the user gets `GREETING_TEXT`. |
 | User sends any later message | The message is copied into their existing topic. |
 | A staff member writes in a user's topic | The message is copied to that user. |
@@ -47,7 +48,7 @@ src/
   services/
     topicManager.ts         Finds, creates and recreates topics; no duplicate topics on simultaneous messages
   handlers/
-    menu.ts                 /start, /settings, the menu keyboard, the language picker and the "/" command list
+    menu.ts                 /start, /settings, the language picker and the commands behind the Menu button
     userMessages.ts         Private chat → the user's topic (with the first-contact greeting)
     staffMessages.ts        Topic reply → the user's private chat
 data/                       The SQLite database is created here (keep this folder on the host)

@@ -13,16 +13,14 @@ export function detectLang(languageCode: string | undefined): Lang {
 /** User-facing texts. Greeting and /start texts come from config so they can be overridden in .env. */
 export const TEXTS = {
   uk: {
-    menuStart: "🏠 Старт",
-    menuSettings: "⚙️ Налаштування",
+    choosePrompt: "Оберіть мову",
     settingsPrompt: "Оберіть мову:",
     langChanged: "Мову змінено на українську 🇺🇦",
     cmdStart: "Почати",
     cmdSettings: "Налаштування",
   },
   en: {
-    menuStart: "🏠 Start",
-    menuSettings: "⚙️ Settings",
+    choosePrompt: "Choose your language",
     settingsPrompt: "Choose your language:",
     langChanged: "Language set to English 🇬🇧",
     cmdStart: "Start",
@@ -34,8 +32,3 @@ export const LANG_NAMES: Record<Lang, string> = {
   uk: "🇺🇦 Українська",
   en: "🇬🇧 English",
 };
-
-/** Every label a menu button can have, in any language (users may still have an old keyboard). */
-export function allLabels(key: "menuStart" | "menuSettings"): string[] {
-  return LANGS.map((lang) => TEXTS[lang][key]);
-}

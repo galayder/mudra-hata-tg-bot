@@ -1,70 +1,70 @@
-import { InlineKeyboard, Keyboard, type Bot, type Context } from "grammy";
+import { InlineKeyboard, type Bot, type Context } from "grammy";
 import type { SettingsRepository } from "../db/settingsRepository";
-import { allLabels, detectLang, isLang, LANG_NAMES, LANGS, TEXTS, type Lang } from "../i18n";
+import { detectLang, isLang, LANG_NAMES, LANGS, TEXTS, type Lang } from "../i18n";
 
 export interface MenuDeps {
   settings: SettingsRepository;
   startText: Record<Lang, string>;
 }
 
-const LANG_CALLBACK = /^lang:(.+)$/;
+/**
+ * Where a language picker was shown, so the message can be updated to fit after a choice:
+ * - "start": the first-visit welcome → becomes the welcome text in the chosen language
+ * - "settings": the /settings picker → becomes a "language changed" confirmation
+ */
+type PickerSource = "start" | "settings";
+const LANG_CALLBACK = /^lang:(\w+):(start|settings)$/;
 
-/** /start, /settings and the persistent reply-keyboard menu in private chats. */
+/** /start and /settings in private chats. Telegram's "Menu" button lists them (see setBotCommands). */
 export function registerMenuHandlers(bot: Bot, deps: MenuDeps): void {
   const privateChat = bot.chatType("private");
 
-  const langOf = (ctx: Context): Lang =>
-    deps.settings.getLang(ctx.from!.id) ?? detectLang(ctx.from!.language_code);
-
-  const sendStart = async (ctx: Context): Promise<void> => {
-    const lang = langOf(ctx);
-    await ctx.reply(deps.startText[lang], { reply_markup: menuKeyboard(lang) });
-  };
-
-  const sendSettings = async (ctx: Context): Promise<void> => {
-    const lang = langOf(ctx);
-    await ctx.reply(TEXTS[lang].settingsPrompt, { reply_markup: langKeyboard(lang) });
-  };
-
-  privateChat.command("start", sendStart);
-  privateChat.command("settings", sendSettings);
-  privateChat.hears(allLabels("menuStart"), sendStart);
-  privateChat.hears(allLabels("menuSettings"), sendSettings);
-
-  bot.callbackQuery(LANG_CALLBACK, async (ctx) => {
-    const lang = ctx.match[1];
-    if (!isLang(lang)) {
-      await ctx.answerCallbackQuery();
+  privateChat.command("start", async (ctx) => {
+    const saved = deps.settings.getLang(ctx.from.id);
+    if (saved) {
+      // remove_keyboard clears the reply keyboard that older versions of the bot showed.
+      await ctx.reply(deps.startText[saved], { reply_markup: { remove_keyboard: true } });
       return;
     }
-    deps.settings.setLang(ctx.from.id, lang);
-    await ctx.answerCallbackQuery();
-    // Refresh the inline picker so the checkmark moves, then send a message carrying
-    // the menu in the new language (a reply keyboard can only be replaced by a new message).
-    await ctx.editMessageText(TEXTS[lang].settingsPrompt, { reply_markup: langKeyboard(lang) }).catch(() => {
-      // "message is not modified" when the same language is tapped twice: harmless.
+    // First visit: no language chosen yet. Greet in the Telegram app's language and ask.
+    const lang = detectLang(ctx.from.language_code);
+    await ctx.reply(`${deps.startText[lang]}\n\n🌐 ${TEXTS.uk.choosePrompt} / ${TEXTS.en.choosePrompt}`, {
+      reply_markup: langKeyboard("start"),
     });
-    await ctx.reply(TEXTS[lang].langChanged, { reply_markup: menuKeyboard(lang) });
+  });
+
+  privateChat.command("settings", async (ctx) => {
+    const lang = langOf(deps.settings, ctx);
+    await ctx.reply(TEXTS[lang].settingsPrompt, { reply_markup: langKeyboard("settings", lang) });
+  });
+
+  bot.callbackQuery(LANG_CALLBACK, async (ctx) => {
+    const [, lang, source] = ctx.match;
+    await ctx.answerCallbackQuery();
+    if (!isLang(lang)) return;
+
+    deps.settings.setLang(ctx.from.id, lang);
+    const text = (source as PickerSource) === "start" ? deps.startText[lang] : TEXTS[lang].langChanged;
+    // Replacing the text without reply_markup also removes the buttons.
+    await ctx.editMessageText(text).catch(() => {
+      // e.g. "message is not modified" on a double tap: harmless.
+    });
   });
 }
 
-function menuKeyboard(lang: Lang): Keyboard {
-  return new Keyboard()
-    .text(TEXTS[lang].menuStart)
-    .text(TEXTS[lang].menuSettings)
-    .resized()
-    .persistent();
+function langOf(settings: SettingsRepository, ctx: Context): Lang {
+  return settings.getLang(ctx.from!.id) ?? detectLang(ctx.from!.language_code);
 }
 
-function langKeyboard(current: Lang): InlineKeyboard {
+function langKeyboard(source: PickerSource, current?: Lang): InlineKeyboard {
   const kb = new InlineKeyboard();
   for (const lang of LANGS) {
-    kb.text(`${lang === current ? "✅ " : ""}${LANG_NAMES[lang]}`, `lang:${lang}`);
+    kb.text(`${lang === current ? "✅ " : ""}${LANG_NAMES[lang]}`, `lang:${lang}:${source}`);
   }
   return kb;
 }
 
-/** Registers the "/" command list shown by Telegram, localized per client language. */
+/** Registers the commands behind Telegram's "Menu" button, localized per client language. */
 export async function setBotCommands(bot: Bot): Promise<void> {
   const commands = (lang: Lang) => [
     { command: "start", description: TEXTS[lang].cmdStart },
