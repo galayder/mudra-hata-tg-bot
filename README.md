@@ -26,6 +26,7 @@ The mapping from user to topic is stored in SQLite (`./data/bot.sqlite`). The bo
 | User sends their first message | A topic named `Name (@username)` is created, with a card showing the user's details. The message is copied into the topic and the user gets `GREETING_TEXT`. |
 | User sends any later message | The message is copied into their existing topic. |
 | A staff member writes in a user's topic | The message is copied to that user. |
+| A staff member replies to a user for the first time | Before the reply, the user gets "👤 {first name} joined the chat" in their language. This happens once per staff member per user. |
 | A staff member writes a message starting with `/` | The message is **not** sent. Use this for internal notes, for example `/note checking with billing`. |
 | A message is posted in the *General* topic | The bot ignores it. |
 | A staff member deleted the user's topic | The next time the user writes, the bot creates a new topic for them. |

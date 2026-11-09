@@ -6,6 +6,7 @@ export interface UserRecord {
   firstName: string;
   lastName: string | null;
   username: string | null;
+  languageCode: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -15,6 +16,7 @@ export interface UserProfile {
   firstName: string;
   lastName?: string | undefined;
   username?: string | undefined;
+  languageCode?: string | undefined;
 }
 
 interface UserRow {
@@ -23,6 +25,7 @@ interface UserRow {
   first_name: string;
   last_name: string | null;
   username: string | null;
+  language_code: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -33,6 +36,7 @@ interface UpsertParams {
   firstName: string;
   lastName: string | null;
   username: string | null;
+  languageCode: string | null;
   now: number;
 }
 
@@ -43,6 +47,7 @@ function toRecord(row: UserRow): UserRecord {
     firstName: row.first_name,
     lastName: row.last_name,
     username: row.username,
+    languageCode: row.language_code,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -58,13 +63,14 @@ export class UserRepository {
     this.byUserId = db.prepare<[number], UserRow>("SELECT * FROM users WHERE user_id = ?");
     this.byThreadId = db.prepare<[number], UserRow>("SELECT * FROM users WHERE thread_id = ?");
     this.upsert = db.prepare<[UpsertParams]>(
-      `INSERT INTO users (user_id, thread_id, first_name, last_name, username, created_at, updated_at)
-       VALUES (@userId, @threadId, @firstName, @lastName, @username, @now, @now)
+      `INSERT INTO users (user_id, thread_id, first_name, last_name, username, language_code, created_at, updated_at)
+       VALUES (@userId, @threadId, @firstName, @lastName, @username, @languageCode, @now, @now)
        ON CONFLICT(user_id) DO UPDATE SET
          thread_id  = excluded.thread_id,
          first_name = excluded.first_name,
          last_name  = excluded.last_name,
          username   = excluded.username,
+         language_code = excluded.language_code,
          updated_at = excluded.updated_at`,
     );
     this.removeByUserId = db.prepare<[number]>("DELETE FROM users WHERE user_id = ?");
@@ -87,6 +93,7 @@ export class UserRepository {
       firstName: profile.firstName,
       lastName: profile.lastName ?? null,
       username: profile.username ?? null,
+      languageCode: profile.languageCode ?? null,
       now: Date.now(),
     });
   }

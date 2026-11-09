@@ -22,6 +22,15 @@ const MIGRATIONS: readonly string[] = [
      lang        TEXT    NOT NULL,
      updated_at  INTEGER NOT NULL
    );`,
+  // v3: support staff who have already been announced to a user ("X joined the chat").
+  `CREATE TABLE IF NOT EXISTS chat_participants (
+     user_id     INTEGER NOT NULL,
+     staff_id    INTEGER NOT NULL,
+     joined_at   INTEGER NOT NULL,
+     PRIMARY KEY (user_id, staff_id)
+   );`,
+  // v4: the user's Telegram app language, used when they never picked one in /settings.
+  `ALTER TABLE users ADD COLUMN language_code TEXT;`,
 ];
 
 export function openDatabase(filePath: string): DB {

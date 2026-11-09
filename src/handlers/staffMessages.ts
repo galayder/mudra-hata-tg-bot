@@ -1,10 +1,15 @@
 import { GrammyError, type Bot, type Context, type FilterQuery } from "grammy";
+import type { ParticipantRepository } from "../db/participantRepository";
+import type { SettingsRepository } from "../db/settingsRepository";
+import { detectLang, TEXTS } from "../i18n";
 import { logger } from "../logger";
 import type { TopicManager } from "../services/topicManager";
 
 export interface StaffHandlerDeps {
   topics: TopicManager;
   supportGroupId: number;
+  settings: SettingsRepository;
+  participants: ParticipantRepository;
 }
 
 /** Content types that can be copied back to the user. Service messages are skipped. */
@@ -38,13 +43,21 @@ export function registerStaffHandlers(bot: Bot, deps: StaffHandlerDeps): void {
       if (ctx.from?.is_bot) return;
       if ((msg.text ?? "").startsWith("/")) return;
 
-      const userId = deps.topics.findUserIdByThread(msg.message_thread_id);
-      if (userId === undefined) {
+      const user = deps.topics.findUserByThread(msg.message_thread_id);
+      if (user === undefined) {
         logger.debug(`No user mapped to topic ${msg.message_thread_id}, ignoring`);
         return;
       }
 
+      const userId = user.userId;
+      const staff = ctx.from!;
       try {
+        // First reply from this staff member to this user: introduce them.
+        if (!deps.participants.hasJoined(userId, staff.id)) {
+          const lang = deps.settings.getLang(userId) ?? detectLang(user.languageCode ?? undefined);
+          await ctx.api.sendMessage(userId, TEXTS[lang].staffJoined.replace("{name}", staff.first_name));
+          deps.participants.markJoined(userId, staff.id);
+        }
         await ctx.copyMessage(userId);
       } catch (err) {
         await reportDeliveryFailure(ctx, err);

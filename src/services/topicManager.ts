@@ -1,5 +1,5 @@
 import { GrammyError, type Api } from "grammy";
-import type { UserProfile, UserRepository } from "../db/userRepository";
+import type { UserProfile, UserRecord, UserRepository } from "../db/userRepository";
 import { logger } from "../logger";
 
 export interface TopicResolution {
@@ -51,8 +51,12 @@ export class TopicManager {
   async resolve(profile: UserProfile): Promise<TopicResolution> {
     const existing = this.users.findByUserId(profile.userId);
     if (existing) {
-      // Keep name/username fresh so the topic lookup stays accurate.
-      if (existing.username !== (profile.username ?? null) || existing.firstName !== profile.firstName) {
+      // Keep name/username/language fresh.
+      if (
+        existing.username !== (profile.username ?? null) ||
+        existing.firstName !== profile.firstName ||
+        existing.languageCode !== (profile.languageCode ?? null)
+      ) {
         this.users.save(profile, existing.threadId);
       }
       return { threadId: existing.threadId, isFirstContact: false };
@@ -67,8 +71,8 @@ export class TopicManager {
   }
 
   /** Maps a topic in the support group back to the user who owns it. */
-  findUserIdByThread(threadId: number): number | undefined {
-    return this.users.findByThreadId(threadId)?.userId;
+  findUserByThread(threadId: number): UserRecord | undefined {
+    return this.users.findByThreadId(threadId);
   }
 
   private createOnce(profile: UserProfile, isFirstContact: boolean): Promise<TopicResolution> {

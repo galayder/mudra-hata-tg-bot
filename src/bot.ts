@@ -2,6 +2,7 @@ import { Bot, GrammyError, HttpError } from "grammy";
 import { autoRetry } from "@grammyjs/auto-retry";
 import type { Config } from "./config";
 import type { DB } from "./db/database";
+import { ParticipantRepository } from "./db/participantRepository";
 import { SettingsRepository } from "./db/settingsRepository";
 import { UserRepository } from "./db/userRepository";
 import { registerMenuHandlers } from "./handlers/menu";
@@ -38,7 +39,12 @@ export function createBot(config: Config, db: DB): Bot {
     supportGroupId: config.supportGroupId,
     greetingText: config.greetingText,
   });
-  registerStaffHandlers(bot, { topics, supportGroupId: config.supportGroupId });
+  registerStaffHandlers(bot, {
+    topics,
+    settings,
+    participants: new ParticipantRepository(db),
+    supportGroupId: config.supportGroupId,
+  });
 
   bot.catch(({ error, ctx }) => {
     const where = `update ${ctx.update.update_id}`;

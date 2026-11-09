@@ -18,6 +18,7 @@ export const TEXTS = {
     langChanged: "Мову змінено на українську 🇺🇦",
     cmdStart: "Почати",
     cmdSettings: "Налаштування",
+    staffJoined: "👤 {name} приєднується до чату",
   },
   en: {
     choosePrompt: "Choose your language",
@@ -25,6 +26,7 @@ export const TEXTS = {
     langChanged: "Language set to English 🇬🇧",
     cmdStart: "Start",
     cmdSettings: "Settings",
+    staffJoined: "👤 {name} joined the chat",
   },
 } as const satisfies Record<Lang, Record<string, string>>;
 

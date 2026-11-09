@@ -26,6 +26,7 @@ export function registerUserHandlers(bot: Bot, deps: UserHandlerDeps): void {
       firstName: from.first_name,
       lastName: from.last_name,
       username: from.username,
+      languageCode: from.language_code,
     };
 
     let { threadId, isFirstContact } = await deps.topics.resolve(profile);
