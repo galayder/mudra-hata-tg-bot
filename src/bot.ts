@@ -3,6 +3,7 @@ import { autoRetry } from "@grammyjs/auto-retry";
 import type { Config } from "./config";
 import type { DB } from "./db/database";
 import { ContactRepository } from "./db/contactRepository";
+import { ConversationRepository } from "./db/conversationRepository";
 import { ParticipantRepository } from "./db/participantRepository";
 import { SettingsRepository } from "./db/settingsRepository";
 import { UserRepository } from "./db/userRepository";
@@ -31,13 +32,15 @@ export function createBot(config: Config, db: DB): Bot {
   });
 
   const settings = new SettingsRepository(db);
+  const conversations = new ConversationRepository(db, config.sessionIdleMs);
 
   // Order matters: menu commands/buttons must be handled before the catch-all forwarder.
-  registerMenuHandlers(bot, { settings, startText: config.startText });
+  registerMenuHandlers(bot, { settings, conversations, startText: config.startText });
   registerUserHandlers(bot, {
     topics,
     settings,
     contacts: new ContactRepository(db),
+    conversations,
     supportGroupId: config.supportGroupId,
     greetingText: config.greetingText,
   });
@@ -45,6 +48,7 @@ export function createBot(config: Config, db: DB): Bot {
     topics,
     settings,
     participants: new ParticipantRepository(db),
+    conversations,
     supportGroupId: config.supportGroupId,
   });
 

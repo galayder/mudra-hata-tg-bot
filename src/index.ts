@@ -27,7 +27,7 @@ async function main(): Promise<void> {
 
   await bot.init();
   await checkSupportGroup(bot, config.supportGroupId);
-  await setBotCommands(bot).catch((err: unknown) => logger.warn("Could not set bot commands", err));
+  await setBotCommands(bot, config.supportGroupId).catch((err: unknown) => logger.warn("Could not set bot commands", err));
 
   // Long polling: no public URL or open port needed, which suits Pterodactyl hosts.
   await bot.start({

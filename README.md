@@ -23,11 +23,12 @@ The mapping from user to topic is stored in SQLite (`./data/bot.sqlite`). The bo
 | User sends `/start` before choosing a language | The bot replies with the start text plus 🇺🇦 Українська / 🇬🇧 English buttons. Picking one saves it and replaces the message with the start text in that language. Nothing is forwarded. |
 | User sends `/start` after choosing a language | The bot replies with the start text in their language. |
 | User sends `/settings` | The bot shows the language picker. Picking a language saves it and confirms the change. |
-| User writes before sharing a phone number | The message is held, not forwarded. The bot asks for the phone number and shows a **📱 Share phone number** button (Telegram's `request_contact`). Later messages are held too, without asking again. |
-| User taps **📱 Share phone number** | The bot saves the number, creates the user's topic if needed, posts `📱 Phone: +...` there, then copies all held messages in order and sends the greeting. |
-| User sends someone else's contact card instead | The bot asks again for their own number. |
-| User sends their first message (phone already shared) | A topic named `Name (@username)` is created, with a card showing the user's details. The message is copied into the topic and the user gets `GREETING_TEXT`. |
-| User sends any later message | The message is copied into their existing topic. |
+| User starts a new question (first message ever, after staff `/close`, or after `SESSION_IDLE_HOURS` of silence) | The message is held. The bot asks for a topic with a keyboard: **🐞 Проблема / Problem** and **💡 Запропонувати функцію / Request a feature**. The Bot API can't disable typing, so anything typed meanwhile is held too. |
+| User picks a topic | If the user has never shared a phone number, the bot asks for it with a **📱 Share phone number** button (Telegram's `request_contact`). Otherwise the held messages are delivered. |
+| User shares their phone number | It's saved once and reused for later questions. Sending someone else's contact card is rejected. |
+| A question is delivered for the first time | In the user's support topic the bot posts `🆕 New question · 🏷 Topic · 📱 Phone`, renames the topic to `🟢🐞 Name` or `🟢💡 Name`, copies all held messages in order, and sends the user the greeting. |
+| User sends any later message | The message is copied into their topic while the question is still open. |
+| A staff member sends `/close` in a user's topic | The question is closed, the topic is renamed `✅ Name`, and the user is told and shown the topic keyboard again. |
 | A staff member writes in a user's topic | The message is copied to that user. |
 | A staff member replies to a user for the first time | Before the reply, the user gets "👤 {first name} joined the chat" in their language. This happens once per staff member per user. |
 | A staff member writes a message starting with `/` | The message is **not** sent. Use this for internal notes, for example `/note checking with billing`. |
@@ -44,12 +45,14 @@ src/
   bot.ts                    Builds the bot, registers handlers, handles errors, checks the group on startup
   config.ts                 Reads and validates environment variables (.env)
   logger.ts                 Small logger with log levels
+  categories.ts             Question topics (Problem, Request a feature) and their keyboard
   i18n.ts                   Languages (uk, en), language detection and user-facing texts
   db/
     database.ts             Opens SQLite (WAL mode) and applies schema migrations
     userRepository.ts       User ⇄ topic mapping (typed queries)
     settingsRepository.ts   Per-user settings (chosen language)
-    contactRepository.ts    Phone numbers and messages held until the phone is shared
+    contactRepository.ts    Phone numbers and messages held until they can be delivered
+    conversationRepository.ts  The user's current question: topic, open/closed, last activity
     participantRepository.ts  Staff already introduced to each user ("X joined the chat")
   services/
     topicManager.ts         Finds, creates and recreates topics; no duplicate topics on simultaneous messages
@@ -71,6 +74,7 @@ All settings come from environment variables. The bot reads them from a `.env` f
 | `DB_PATH` | | `./data/bot.sqlite` | Where the SQLite file is stored |
 | `GREETING_TEXT_UK`, `GREETING_TEXT_EN` | | *(receipt notice)* | Automatic reply to a user's first message, per language. Write `\n` for a line break. The old `GREETING_TEXT` still works as the English text. |
 | `START_TEXT_UK`, `START_TEXT_EN` | | *(welcome text)* | Reply to `/start`, per language. The old `START_TEXT` still works as the English text. |
+| `SESSION_IDLE_HOURS` | | `12` | After this many hours with no messages from the user or staff, the user's next message starts a new question with a topic choice |
 | `LOG_LEVEL` | | `info` | One of `debug`, `info`, `warn`, `error` |
 
 ## Local development

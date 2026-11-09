@@ -23,6 +23,10 @@ export const TEXTS = {
     sharePhoneButton: "📱 Поділитися номером",
     notOwnContact: "Будь ласка, поділіться власним номером за допомогою кнопки нижче 👇",
     phoneSaved: "Дякуємо! Номер збережено.",
+    chooseTopic: "Оберіть, будь ласка, тему звернення 👇",
+    topicPlaceholder: "Оберіть тему нижче",
+    describe: "Опишіть, будь ласка, ваше питання одним або кількома повідомленнями.",
+    closed: "✅ Ваше звернення закрито. Якщо потрібна ще допомога — оберіть тему та напишіть нам.",
   },
   en: {
     choosePrompt: "Choose your language",
@@ -35,6 +39,10 @@ export const TEXTS = {
     sharePhoneButton: "📱 Share phone number",
     notOwnContact: "Please share your own number using the button below 👇",
     phoneSaved: "Thanks! Your number has been saved.",
+    chooseTopic: "Please choose the topic of your request 👇",
+    topicPlaceholder: "Choose a topic below",
+    describe: "Please describe your question in one or more messages.",
+    closed: "✅ Your request has been closed. If you need more help, choose a topic and write to us.",
   },
 } as const satisfies Record<Lang, Record<string, string>>;
 

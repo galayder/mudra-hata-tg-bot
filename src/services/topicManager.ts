@@ -21,12 +21,14 @@ export function displayName(profile: UserProfile): string {
   return [profile.firstName, profile.lastName].filter(Boolean).join(" ") || `User ${profile.userId}`;
 }
 
-function topicName(profile: UserProfile): string {
+/** Topic title: optional status prefix (e.g. "🟢🐞"), then "Name (@username)", within Telegram's 128 chars. */
+function topicName(profile: UserProfile, prefix = ""): string {
+  const lead = prefix ? `${prefix} ` : "";
   const suffix = profile.username ? ` (@${profile.username})` : ` (${profile.userId})`;
   const base = displayName(profile);
-  const maxBase = TOPIC_NAME_LIMIT - suffix.length;
+  const maxBase = TOPIC_NAME_LIMIT - suffix.length - lead.length;
   const trimmed = base.length > maxBase ? `${base.slice(0, maxBase - 1)}…` : base;
-  return trimmed + suffix;
+  return lead + trimmed + suffix;
 }
 
 function escapeHtml(text: string): string {
@@ -73,6 +75,16 @@ export class TopicManager {
   /** Maps a topic in the support group back to the user who owns it. */
   findUserByThread(threadId: number): UserRecord | undefined {
     return this.users.findByThreadId(threadId);
+  }
+
+  /**
+   * Renames the topic to show the question's status, e.g. "🟢🐞 Ann (@ann)" or "✅ Ann (@ann)".
+   * Best effort: a failed rename (e.g. "TOPIC_NOT_MODIFIED") never blocks delivery.
+   */
+  async setStatus(profile: UserProfile, threadId: number, prefix: string): Promise<void> {
+    await this.api.editForumTopic(this.groupId, threadId, { name: topicName(profile, prefix) }).catch((err: unknown) => {
+      logger.debug(`Could not rename topic ${threadId}`, err instanceof GrammyError ? err.description : err);
+    });
   }
 
   private createOnce(profile: UserProfile, isFirstContact: boolean): Promise<TopicResolution> {

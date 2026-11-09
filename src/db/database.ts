@@ -43,6 +43,14 @@ const MIGRATIONS: readonly string[] = [
      created_at  INTEGER NOT NULL,
      PRIMARY KEY (user_id, message_id)
    );`,
+  // v6: the user's current question: picked topic, open/closed, last activity.
+  `CREATE TABLE IF NOT EXISTS conversations (
+     user_id        INTEGER PRIMARY KEY,
+     category       TEXT,
+     status         TEXT    NOT NULL,
+     announced      INTEGER NOT NULL DEFAULT 0,
+     last_activity  INTEGER NOT NULL
+   );`,
 ];
 
 export function openDatabase(filePath: string): DB {

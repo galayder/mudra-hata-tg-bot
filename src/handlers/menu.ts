@@ -1,9 +1,12 @@
 import { InlineKeyboard, type Bot, type Context } from "grammy";
+import { categoryKeyboard } from "../categories";
+import type { ConversationRepository } from "../db/conversationRepository";
 import type { SettingsRepository } from "../db/settingsRepository";
 import { detectLang, isLang, LANG_NAMES, LANGS, TEXTS, type Lang } from "../i18n";
 
 export interface MenuDeps {
   settings: SettingsRepository;
+  conversations: ConversationRepository;
   startText: Record<Lang, string>;
 }
 
@@ -22,8 +25,7 @@ export function registerMenuHandlers(bot: Bot, deps: MenuDeps): void {
   privateChat.command("start", async (ctx) => {
     const saved = deps.settings.getLang(ctx.from.id);
     if (saved) {
-      // remove_keyboard clears the reply keyboard that older versions of the bot showed.
-      await ctx.reply(deps.startText[saved], { reply_markup: { remove_keyboard: true } });
+      await ctx.reply(deps.startText[saved], { reply_markup: topicsOrNothing(deps, ctx.from.id, saved) });
       return;
     }
     // First visit: no language chosen yet. Greet in the Telegram app's language and ask.
@@ -46,10 +48,21 @@ export function registerMenuHandlers(bot: Bot, deps: MenuDeps): void {
     deps.settings.setLang(ctx.from.id, lang);
     const text = (source as PickerSource) === "start" ? deps.startText[lang] : TEXTS[lang].langChanged;
     // Replacing the text without reply_markup also removes the buttons.
-    await ctx.editMessageText(text).catch(() => {
-      // e.g. "message is not modified" on a double tap: harmless.
-    });
+    const edited = await ctx.editMessageText(text).then(
+      () => true,
+      () => false, // e.g. "message is not modified" on a double tap: harmless.
+    );
+    // First visit: right after the welcome, offer the topics. An inline-keyboard message
+    // cannot be edited into a reply keyboard, so this is a new message.
+    if (edited && source === "start") {
+      await ctx.reply(TEXTS[lang].chooseTopic, { reply_markup: topicsOrNothing(deps, ctx.from.id, lang) });
+    }
   });
+}
+
+/** The topic keyboard, unless the user is in the middle of a question (then clear any keyboard). */
+function topicsOrNothing(deps: MenuDeps, userId: number, lang: Lang) {
+  return deps.conversations.active(userId) ? { remove_keyboard: true as const } : categoryKeyboard(lang);
 }
 
 function langOf(settings: SettingsRepository, ctx: Context): Lang {
@@ -65,7 +78,7 @@ function langKeyboard(source: PickerSource, current?: Lang): InlineKeyboard {
 }
 
 /** Registers the commands behind Telegram's "Menu" button, localized per client language. */
-export async function setBotCommands(bot: Bot): Promise<void> {
+export async function setBotCommands(bot: Bot, supportGroupId: number): Promise<void> {
   const commands = (lang: Lang) => [
     { command: "start", description: TEXTS[lang].cmdStart },
     { command: "settings", description: TEXTS[lang].cmdSettings },
@@ -73,4 +86,8 @@ export async function setBotCommands(bot: Bot): Promise<void> {
   const privateScope = { scope: { type: "all_private_chats" as const } };
   await bot.api.setMyCommands(commands("en"), privateScope);
   await bot.api.setMyCommands(commands("uk"), { ...privateScope, language_code: "uk" });
+  // Staff side: /close in the support group.
+  await bot.api.setMyCommands([{ command: "close", description: "Close this user's question" }], {
+    scope: { type: "chat", chat_id: supportGroupId },
+  });
 }

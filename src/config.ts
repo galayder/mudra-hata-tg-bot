@@ -15,6 +15,8 @@ export interface Config {
   greetingText: Record<Lang, string>;
   startText: Record<Lang, string>;
   logLevel: LogLevel;
+  /** After this long without messages from either side, the next user message starts a new question. */
+  sessionIdleMs: number;
 }
 
 const DEFAULT_GREETING: Record<Lang, string> = {
@@ -65,6 +67,14 @@ function parseGroupId(raw: string): number {
   return id;
 }
 
+function parseHours(raw: string): number {
+  const hours = Number(raw);
+  if (!Number.isFinite(hours) || hours <= 0) {
+    throw new Error(`SESSION_IDLE_HOURS must be a positive number, got "${raw}"`);
+  }
+  return hours;
+}
+
 function parseLogLevel(raw: string): LogLevel {
   const levels: readonly LogLevel[] = ["debug", "info", "warn", "error"];
   const level = raw.toLowerCase() as LogLevel;
@@ -79,5 +89,6 @@ export function loadConfig(): Config {
     greetingText: localized("GREETING_TEXT", DEFAULT_GREETING),
     startText: localized("START_TEXT", DEFAULT_START),
     logLevel: parseLogLevel(optional("LOG_LEVEL", "info")),
+    sessionIdleMs: parseHours(optional("SESSION_IDLE_HOURS", "12")) * 60 * 60 * 1000,
   };
 }
