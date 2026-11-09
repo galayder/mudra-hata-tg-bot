@@ -36,7 +36,7 @@ export function createBot(config: Config, db: DB): { bot: Bot; sweeper: IdleSwee
   const conversations = new ConversationRepository(db, config.sessionIdleMs);
 
   // Order matters: menu commands/buttons must be handled before the catch-all forwarder.
-  registerMenuHandlers(bot, { settings, conversations, startText: config.startText });
+  registerMenuHandlers(bot, { settings, conversations, startText: config.startText, websiteUrl: config.websiteUrl });
   registerUserHandlers(bot, {
     topics,
     settings,

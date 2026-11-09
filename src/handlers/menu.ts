@@ -8,6 +8,7 @@ export interface MenuDeps {
   settings: SettingsRepository;
   conversations: ConversationRepository;
   startText: Record<Lang, string>;
+  websiteUrl: string;
 }
 
 /**
@@ -38,6 +39,14 @@ export function registerMenuHandlers(bot: Bot, deps: MenuDeps): void {
   privateChat.command("settings", async (ctx) => {
     const lang = langOf(deps.settings, ctx);
     await ctx.reply(TEXTS[lang].settingsPrompt, { reply_markup: langKeyboard("settings", lang) });
+  });
+
+  privateChat.command("website", async (ctx) => {
+    const lang = langOf(deps.settings, ctx);
+    await ctx.reply(`${TEXTS[lang].websiteText} ${deps.websiteUrl}`, {
+      reply_markup: new InlineKeyboard().url(TEXTS[lang].websiteButton, deps.websiteUrl),
+      link_preview_options: { is_disabled: true },
+    });
   });
 
   bot.callbackQuery(LANG_CALLBACK, async (ctx) => {
@@ -82,6 +91,7 @@ export async function setBotCommands(bot: Bot, supportGroupId: number): Promise<
   const commands = (lang: Lang) => [
     { command: "start", description: TEXTS[lang].cmdStart },
     { command: "settings", description: TEXTS[lang].cmdSettings },
+    { command: "website", description: TEXTS[lang].cmdWebsite },
   ];
   const privateScope = { scope: { type: "all_private_chats" as const } };
   await bot.api.setMyCommands(commands("en"), privateScope);

@@ -19,6 +19,8 @@ export interface Config {
   sessionIdleMs: number;
   /** Phone number given to users whose question timed out without an answer. */
   supportPhone: string;
+  /** Opened by /website. */
+  websiteUrl: string;
 }
 
 const DEFAULT_GREETING: Record<Lang, string> = {
@@ -91,6 +93,7 @@ export function loadConfig(): Config {
     greetingText: localized("GREETING_TEXT", DEFAULT_GREETING),
     startText: localized("START_TEXT", DEFAULT_START),
     logLevel: parseLogLevel(optional("LOG_LEVEL", "info")),
+    websiteUrl: optional("WEBSITE_URL", "https://mudrahata.com"),
     supportPhone: optional("SUPPORT_PHONE", "+380505255167"),
     sessionIdleMs: parseHours(optional("SESSION_IDLE_HOURS", "12")) * 60 * 60 * 1000,
   };

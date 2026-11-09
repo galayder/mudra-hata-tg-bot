@@ -9,7 +9,7 @@ It connects private chats with a support team working in one Telegram group:
 - The user's messages are copied into their topic: text, photos, files, voice messages, stickers, and so on.
 - When someone on the team replies inside a topic, the bot sends that reply to the user's private chat.
 - The first time a user writes, the bot automatically replies that the message was received and is being processed.
-- Telegram's **Menu** button lists `/start` and `/settings`. The bot speaks Ukrainian and English: by default it follows the user's Telegram language, and users can change it in **Settings**. Messages for the support team stay in English.
+- Telegram's **Menu** button lists `/start`, `/settings` and `/website`. The bot speaks Ukrainian and English: by default it follows the user's Telegram language, and users can change it in **Settings**. Messages for the support team stay in English.
 
 The mapping from user to topic is stored in SQLite (`./data/bot.sqlite`). The bot uses long polling, so it needs no domain, no webhook and no open port. That makes it a good fit for Pterodactyl hosts such as [Bot-Hosting.net](https://bot-hosting.net/).
 
@@ -23,6 +23,7 @@ The mapping from user to topic is stored in SQLite (`./data/bot.sqlite`). The bo
 | User sends `/start` before choosing a language | The bot replies with the start text plus 🇺🇦 Українська / 🇬🇧 English buttons. Picking one saves it and replaces the message with the start text in that language. Nothing is forwarded. |
 | User sends `/start` after choosing a language | The bot replies with the start text in their language. |
 | User sends `/settings` | The bot shows the language picker. Picking a language saves it and confirms the change. |
+| User sends `/website` | The bot replies with a button that opens the website (`WEBSITE_URL`, default https://mudrahata.com). |
 | User starts a new question (first message ever, after staff `/close`, or after `SESSION_IDLE_HOURS` of silence) | The message is held. The bot asks for a topic with a keyboard: **🐞 Проблема / Problem** and **💡 Запропонувати функцію / Request a feature**. The Bot API can't disable typing, so anything typed meanwhile is held too. |
 | User picks a topic | If the user has never shared a phone number, the bot asks for it with a **📱 Share phone number** button (Telegram's `request_contact`). Otherwise the held messages are delivered. |
 | User shares their phone number | It's saved once and reused for later questions. Sending someone else's contact card is rejected. |
@@ -77,6 +78,7 @@ All settings come from environment variables. The bot reads them from a `.env` f
 | `GREETING_TEXT_UK`, `GREETING_TEXT_EN` | | *(receipt notice)* | Automatic reply to a user's first message, per language. Write `\n` for a line break. The old `GREETING_TEXT` still works as the English text. |
 | `START_TEXT_UK`, `START_TEXT_EN` | | *(welcome text)* | Reply to `/start`, per language. The old `START_TEXT` still works as the English text. |
 | `SESSION_IDLE_HOURS` | | `12` | After this many hours with no messages from the user or staff, the user's next message starts a new question with a topic choice |
+| `WEBSITE_URL` | | `https://mudrahata.com` | Website opened by `/website` |
 | `SUPPORT_PHONE` | | `+380505255167` | Phone number in the apology sent when a question times out without an answer |
 | `LOG_LEVEL` | | `info` | One of `debug`, `info`, `warn`, `error` |
 
